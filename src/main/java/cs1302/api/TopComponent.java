@@ -8,6 +8,9 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.text.Text;
 import javafx.geometry.Pos;
 
+/**
+ * Represents the top component in my application.
+ */
 public class TopComponent extends HBox {
     Text search;
     TextField query;
@@ -15,6 +18,9 @@ public class TopComponent extends HBox {
     ComboBox<String> country;
     Button goButton;
 
+    /**
+     * Constructs an instance of TopComponent.
+     */
     public TopComponent() {
         super(8);
         search = new Text("Search City:");

@@ -50,7 +50,8 @@ import cs1302.api.BreweryResponse;
 import cs1302.api.CountryResponse;
 
 /**
- * REPLACE WITH NON-SHOUTING DESCRIPTION OF YOUR APP.
+ * Application that shows users breweries in the city they search up,
+ * then allows them to learn more about the country.
  */
 public class ApiApp extends Application {
     Stage stage;
@@ -99,7 +100,7 @@ public class ApiApp extends Application {
      */
 
     public ApiApp() {
-        root = new VBox();
+        root = new VBox(8);
         searchCity = new TopComponent();
         printInfo = new HBox(8);
         info = new Text();
@@ -116,14 +117,14 @@ public class ApiApp extends Application {
     /** {@inheritDoc} */
     @Override
     public void init() {
-        Image bannerImage = new Image("file:resources/Pub-Crawl-Expedition-Logo.png");
-        ImageView banner = new ImageView(bannerImage);
+        Image bannerImage = new Image("file:resources/Banner.png", 200, 133, true, false);
 
+        ImageView banner = new ImageView(bannerImage);
         printInfo.getChildren().add(info);
         printInfo.setHgrow(info, Priority.ALWAYS);
         banner.setPreserveRatio(true);
         root.getChildren().addAll(banner, searchCity, printInfo, learnMoreButton);
-
+        root.setAlignment(Pos.BASELINE_CENTER);
 
         searchCity.goButton.setOnAction(event -> {
             learnMoreButton.setDisable(true);
@@ -131,24 +132,21 @@ public class ApiApp extends Application {
             this.userJsonResponse();
             this.showBreweries();
         });
-        learnMoreButton.setOnAction(event -> this.apiJsonResponse());
+        learnMoreButton.setOnAction(event -> {
+            this.printInfo.getChildren().clear();
+            this.apiJsonResponse() ;
+            this.showCountries();
+        });
+    } // init
 
-    }
 
     /** {@inheritDoc} */
     @Override
     public void start(Stage stage) {
-
         this.stage = stage;
-
-        // demonstrate how to load local asset using "file:resources/"
-
-
-        // some labels to display information
-//        Label notice = new Label("Modify the starter code to suit your needs.");
+//        stage.setMaxHeight(720);
 
         // setup scene
-
         scene = new Scene(root);
 
         // setup stage
@@ -160,6 +158,9 @@ public class ApiApp extends Application {
 
     } // start
 
+    /**
+     * Method that returns the json response based on user input.
+     */
     private void userJsonResponse() {
         try {
             // form URI
@@ -193,6 +194,9 @@ public class ApiApp extends Application {
         }
     } // jsonResponse
 
+    /**
+     * Method that returns the json response based on the previous api's response.
+     */
     private void apiJsonResponse() {
         try {
             // form URI
@@ -216,14 +220,16 @@ public class ApiApp extends Application {
 
             countryResponse = GSON
                 .fromJson(jsonString, CountryResponse[].class);
-            countryResponse = this.filterArray(countryResponse);
-            this.createNecessaryArrays(countryResponse); // create the URL array list from the
-                                                // countryResponse class
+            this.filterArray();
         } catch (IOException | InterruptedException e) {
             Platform.runLater(() -> alertError(e));
         }
     } // jsonResponse
 
+    /**
+     * Show a modal error alert based on {@code cause}.
+     * @param cause a {@link java.lang.Throwable Throwable} that caused the alert
+     */
     private  void alertError(Throwable cause) {
         TextArea text = new TextArea("URI: " + uri + "\nException: " + cause.toString());
         text.setEditable(false);
@@ -233,15 +239,21 @@ public class ApiApp extends Application {
         alert.showAndWait();
     } // alertError
 
-    private CountryResponse[] filterArray(CountryResponse[] countryResponse) {
+    /**
+     * Filters the {@code countryResponse} array to remove duplicate info.
+     */
+    private void filterArray() {
         for (int i = 0; i < countryResponse.length; i ++) {
             if (!countryResponse[i].name.common.equals(breweryCountry)) {
                 countryResponse[i] = null;
             } // if
         } // for
-        return countryResponse;
-
     }
+
+    /**
+     * Filters the {@code breweryResponse} array to account for the same city
+     * names in different countries.
+     */
     private void filterBreweryArray() {
         for (int i = 0; i < breweryResponse.length; i++) {
             if (!breweryResponse[i].country.equals(searchCity.country.getValue())) {
@@ -253,22 +265,9 @@ public class ApiApp extends Application {
         } // for
     }
 
-    private void createNecessaryArrays(Object response) {
-        System.out.println();
-        System.out.println("********** PRETTY JSON STRING: **********");
-        System.out.println(GSON.toJson(response));
-        System.out.println();
-//        System.out.println("********** PARSED RESULTS: **********");
-        // System.out.printf("resultCount = %s\n", itunesResponse.resultCount);
-        // for (int i = 0; i < itunesResponse.results.length; i++) {
-        //     System.out.printf("itunesResponse.results[%d]:\n", i);
-        //     ItunesResult result = itunesResponse.results[i];
-        //     System.out.printf(" - wrapperType = %s\n", result.wrapperType);
-        //     System.out.printf(" - kind = %s\n", result.kind);
-        //     System.out.printf(" - artworkUrl100 = %s\n", result.artworkUrl100);
-        // } // for
-    } // parseItunesResponse
-
+    /**
+     * Creates text objects to show the information about breweries.
+     */
     private void showBreweries() {
         int countItems = 0;
         if (breweryResponse.length > 0) {
@@ -292,11 +291,23 @@ public class ApiApp extends Application {
         stage.sizeToScene();
     } // showBreweries
 
-    // private void showCountries() {
-    //     for (int i = 0; i < countryResponse.length; i ++) {
-    //         if (countryResponse[i] != null) {
-    //             info = new Text(this.countryToString(countryResponse[i]));
-    //         }
-    //     }
-    // } // showCountries;
+    /**
+     * Creates the image and text objects to show the information about the country.
+     */
+    private void showCountries() {
+        ImageView imgView = new ImageView();
+        String imgUrl = "";
+        for (int i = 0; i < countryResponse.length; i ++) {
+            if (countryResponse[i] != null) {
+                info = new Text(countryResponse[i].toString());
+                this.printInfo.getChildren().add(info);
+                imgUrl = countryResponse[i].flags.png;
+            } // if
+        }
+        if (!imgUrl.isEmpty()) {
+            imgView.setImage(new Image(imgUrl));
+            this.printInfo.getChildren().add(imgView);
+        } // if
+        stage.sizeToScene();
+    } // showCountries;
 } // ApiApp
