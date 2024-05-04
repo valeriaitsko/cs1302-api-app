@@ -84,6 +84,10 @@ public class ApiApp extends Application {
     TopComponent searchCity;
     String uri;
     String breweryCountry;
+    BreweryResponse[] breweryResponse;
+    CountryResponse[] countryResponse;
+    HBox printInfo;
+    Text info;
     Button learnMoreButton;
     Background bg;
     Image bgImg;
@@ -97,6 +101,8 @@ public class ApiApp extends Application {
     public ApiApp() {
         root = new VBox();
         searchCity = new TopComponent();
+        printInfo = new HBox(8);
+        info = new Text();
         learnMoreButton = new Button("Learn More!");
         learnMoreButton.setDisable(true);
         bgImg = new Image("file:resources/Background.jpg");
@@ -113,13 +119,17 @@ public class ApiApp extends Application {
         Image bannerImage = new Image("file:resources/Pub-Crawl-Expedition-Logo.png");
         ImageView banner = new ImageView(bannerImage);
 
+        printInfo.getChildren().add(info);
+        printInfo.setHgrow(info, Priority.ALWAYS);
         banner.setPreserveRatio(true);
-        root.getChildren().addAll(banner, searchCity, learnMoreButton);
+        root.getChildren().addAll(banner, searchCity, printInfo, learnMoreButton);
+
 
         searchCity.goButton.setOnAction(event -> {
             learnMoreButton.setDisable(true);
+            this.printInfo.getChildren().clear();
             this.userJsonResponse();
-            learnMoreButton.setDisable(false);
+            this.showBreweries();
         });
         learnMoreButton.setOnAction(event -> this.apiJsonResponse());
 
@@ -156,8 +166,8 @@ public class ApiApp extends Application {
             String city  = URLEncoder.encode(searchCity.query.getText(), StandardCharsets.UTF_8);
             String breweryType = URLEncoder.encode(searchCity.type.getValue(),
                                  StandardCharsets.UTF_8);
-            String limit = URLEncoder.encode("200", StandardCharsets.UTF_8);
-            String searchQuery = String.format("?by_city=%s&by_type=%s&limit=%s",
+            String limit = URLEncoder.encode("3", StandardCharsets.UTF_8);
+            String searchQuery = String.format("?by_city=%s&by_type=%s&per_page=%s",
                        city, breweryType, limit);
             uri = BREWERY_API + searchQuery;
             System.out.println(uri);
@@ -175,32 +185,9 @@ public class ApiApp extends Application {
             // get request body (the content we requested)
             String jsonString = response.body();
 
-            BreweryResponse[] breweryResponse = GSON
+            breweryResponse = GSON
                 .fromJson(jsonString, BreweryResponse[].class);
-
-            if (breweryResponse.length > 0) {
-                for (int i = 0; i < breweryResponse.length; i++) {
-                    if (!breweryResponse[i].country.equals(searchCity.country.getValue())) {
-                        breweryResponse[i] = null;
-                    } else {
-                        breweryCountry = BREWERIES_TO_COUNTRIES.get(breweryResponse[i].country);
-                        this.createNecessaryArrays(breweryResponse);
-                    } // if
-                } // for
-                int countNulls = 0;
-                for (BreweryResponse br: breweryResponse) {
-                    if (br == null) {
-                        countNulls ++;
-                    } // if
-                } // for
-                if (countNulls == breweryResponse.length) {
-                    System.out.println("Sorry there are no breweries of that type in " +
-                           searchCity.query.getText() + ", " + searchCity.country.getValue());
-                } // if
-            } else {
-                System.out.println("Sorry we could not find any breweries of that type");
-
-            } // if
+            this.filterBreweryArray();
         } catch (IOException | InterruptedException e) {
             Platform.runLater(() -> alertError(e));
         }
@@ -227,7 +214,7 @@ public class ApiApp extends Application {
             // get request body (the content we requested)
             String jsonString = response.body();
 
-            CountryResponse[] countryResponse = GSON
+            countryResponse = GSON
                 .fromJson(jsonString, CountryResponse[].class);
             countryResponse = this.filterArray(countryResponse);
             this.createNecessaryArrays(countryResponse); // create the URL array list from the
@@ -255,6 +242,16 @@ public class ApiApp extends Application {
         return countryResponse;
 
     }
+    private void filterBreweryArray() {
+        for (int i = 0; i < breweryResponse.length; i++) {
+            if (!breweryResponse[i].country.equals(searchCity.country.getValue())) {
+                breweryResponse[i] = null;
+            } else {
+                breweryCountry = BREWERIES_TO_COUNTRIES.get(breweryResponse[i].country);
+                this.createNecessaryArrays(breweryResponse);
+            } // if
+        } // for
+    }
 
     private void createNecessaryArrays(Object response) {
         System.out.println();
@@ -272,5 +269,34 @@ public class ApiApp extends Application {
         // } // for
     } // parseItunesResponse
 
+    private void showBreweries() {
+        int countItems = 0;
+        if (breweryResponse.length > 0) {
+            for (int i = 0; i < breweryResponse.length; i ++) {
+                if (breweryResponse[i] != null) {
+                    info = new Text(breweryResponse[i].toString());
+                    countItems ++;
+                    this.printInfo.getChildren().add(info);
+                    learnMoreButton.setDisable(false);
+                } // if
+            } // for
+            if (countItems == 0) {
+                info = new Text("Sorry there are no breweries of that type in " +
+                searchCity.query.getText() + ", " + searchCity.country.getValue());
+                this.printInfo.getChildren().add(info);
+            } // if
+        } else {
+            info = new Text("Sorry we could not find any breweries of that type.");
+            this.printInfo.getChildren().add(info);
+        } // if
+        stage.sizeToScene();
+    } // showBreweries
 
+    // private void showCountries() {
+    //     for (int i = 0; i < countryResponse.length; i ++) {
+    //         if (countryResponse[i] != null) {
+    //             info = new Text(this.countryToString(countryResponse[i]));
+    //         }
+    //     }
+    // } // showCountries;
 } // ApiApp
