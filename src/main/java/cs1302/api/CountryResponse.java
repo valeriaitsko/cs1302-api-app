@@ -22,13 +22,15 @@ public class CountryResponse {
 
     @Override
     public String toString() {
+        String separator = "";
         String allCurrencies = "";
         for (Map.Entry currency: currencies.entrySet()) {
-            allCurrencies += "Currency Name: " + currency.getKey() + '\n' +
+            allCurrencies += separator + "Currency Name: " + currency.getKey() + '\n' +
                 currency.getValue();
+            separator = "\n";
         } // for
         String allCapitals = "Capital: ";
-        String separator = "";
+        separator = "";
         for (String cap: capital) {
             allCapitals += separator + Objects.toString(cap, "");
             separator = ", ";
