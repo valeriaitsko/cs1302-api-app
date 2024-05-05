@@ -78,7 +78,7 @@ public class ApiApp extends Application {
          entry("South Korea", "South Korea"),
          entry("Poland", "Poland"),
          entry("Austria", "Austria"),
-         entry("Isle Of Man", "Isle of Man"),
+         entry("Isle of Man", "Isle of Man"),
          entry("Ireland", "Ireland"),
          entry("France", "France"));
 
@@ -136,6 +136,7 @@ public class ApiApp extends Application {
             this.printInfo.getChildren().clear();
             this.apiJsonResponse() ;
             this.showCountries();
+            learnMoreButton.setDisable(true);
         });
     } // init
 
@@ -171,7 +172,6 @@ public class ApiApp extends Application {
             String searchQuery = String.format("?by_city=%s&by_type=%s&per_page=%s",
                        city, breweryType, limit);
             uri = BREWERY_API + searchQuery;
-            System.out.println(uri);
             // build request
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(uri))
@@ -188,9 +188,9 @@ public class ApiApp extends Application {
 
             breweryResponse = GSON
                 .fromJson(jsonString, BreweryResponse[].class);
-            this.filterBreweryArray();
+            this.filterBreweryArray(); // Accounts for same cities in different countries
         } catch (IOException | InterruptedException e) {
-            Platform.runLater(() -> alertError(e));
+            alertError(e);
         }
     } // jsonResponse
 
@@ -203,7 +203,6 @@ public class ApiApp extends Application {
             String country = URLEncoder.encode(breweryCountry, StandardCharsets.UTF_8);
             country = country.replaceAll("\\+", "%20");
             uri = COUNTRIES_API + country;
-            System.out.println(uri);
             // build request
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(uri))
@@ -220,9 +219,9 @@ public class ApiApp extends Application {
 
             countryResponse = GSON
                 .fromJson(jsonString, CountryResponse[].class);
-            this.filterArray();
+            this.filterCountryArray(); // Filters out names with duplicate info about the country
         } catch (IOException | InterruptedException e) {
-            Platform.runLater(() -> alertError(e));
+            alertError(e);
         }
     } // jsonResponse
 
@@ -242,13 +241,13 @@ public class ApiApp extends Application {
     /**
      * Filters the {@code countryResponse} array to remove duplicate info.
      */
-    private void filterArray() {
+    private void filterCountryArray() {
         for (int i = 0; i < countryResponse.length; i ++) {
             if (!countryResponse[i].name.common.equals(breweryCountry)) {
                 countryResponse[i] = null;
             } // if
         } // for
-    }
+    } // filterCountryArray
 
     /**
      * Filters the {@code breweryResponse} array to account for the same city
@@ -260,10 +259,9 @@ public class ApiApp extends Application {
                 breweryResponse[i] = null;
             } else {
                 breweryCountry = BREWERIES_TO_COUNTRIES.get(breweryResponse[i].country);
-                this.createNecessaryArrays(breweryResponse);
             } // if
         } // for
-    }
+    } // filterBreweryArray
 
     /**
      * Creates text objects to show the information about breweries.
@@ -279,6 +277,7 @@ public class ApiApp extends Application {
                     learnMoreButton.setDisable(false);
                 } // if
             } // for
+            // if brewery exists in a different country
             if (countItems == 0) {
                 info = new Text("Sorry there are no breweries of that type in " +
                 searchCity.query.getText() + ", " + searchCity.country.getValue());
